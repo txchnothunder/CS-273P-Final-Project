@@ -159,7 +159,7 @@ print("\n[11] train.py — 3-epoch mini training run...")
 # ------------------------------------------------------------------
 from train import train
 
-_, test_metrics, history = train(
+history = train(
     data_path="data/ai4i2020.csv",
     epochs=3,
     lr=1e-3,
@@ -170,9 +170,6 @@ _, test_metrics, history = train(
     checkpoint_dir="checkpoints",
     results_dir="results",
 )
-
-assert "binary_f1"     in test_metrics
-assert "type_f1_macro" in test_metrics
 assert len(history["train_loss"]) == 3
 assert os.path.exists(os.path.join("checkpoints", "best_model.pt"))
 print("    3-epoch run completed, checkpoint exists, history length OK")
