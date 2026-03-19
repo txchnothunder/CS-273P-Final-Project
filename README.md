@@ -6,8 +6,7 @@ A PyTorch implementation of a Multi-Task Learning (MTL) architecture for predict
 - **Binary classification:** Did the machine fail?
 - **6-class classification:** Which failure mode occurred? (TWF, HDF, PWF, OSF, RNF, or No Failure)
 
-Training both tasks jointly allows the shared backbone to learn richer representations than either task alone.
-
+We trained both tasks jointly.
 ---
 
 ## Project Structure
