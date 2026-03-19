@@ -1,5 +1,5 @@
 # Predictive Maintenance with Multi-Task Learning
-CS273P Final Project — Ethan Wong
+CS273P Final Project — Ethan Wong & Ashley Wong
 
 The project uses the AI4I 2020 dataset (10,000 samples of industrial sensor readings) to predict machine failures using a deep learning model built in PyTorch. Instead of a basic sklearn classifier, we built a Multi-Task Learning (MTL) architecture that solves two problems simultaneously:
 
