@@ -2,11 +2,15 @@
 train.py
 
 Training loop for the MTL predictive maintenance model.
+Saves the best checkpoint to checkpoints/best_model.pt and loss curves to results/.
 
 Usage:
     python src/train.py                      # defaults
     python src/train.py --epochs 50 --lr 1e-3 --alpha 0.5 --batch-size 64
     python src/train.py --no-early-stopping
+
+After training, evaluate on the test set with:
+    python src/test.py
 """
 
 import sys
@@ -20,12 +24,12 @@ import torch.optim as optim
 
 from dataset  import load_data, get_dataloaders
 from model    import MTLModel, MTLLoss, count_parameters
-from evaluate import evaluate, compute_metrics, print_report, plot_confusion_matrix
+from evaluate import evaluate, compute_metrics
 from utils    import set_seed, save_checkpoint, plot_loss_curves, get_device
 
 
 # ------------------------------------------------------------------
-# Training loop
+# One epoch
 # ------------------------------------------------------------------
 
 def train_one_epoch(model, loader, loss_fn, optimizer, device):
@@ -50,6 +54,10 @@ def train_one_epoch(model, loader, loss_fn, optimizer, device):
     return total / n, bin_total / n, type_total / n
 
 
+# ------------------------------------------------------------------
+# Full training pipeline
+# ------------------------------------------------------------------
+
 def train(
     data_path: str,
     epochs: int = 50,
@@ -63,19 +71,22 @@ def train(
     results_dir: str = "results",
 ):
     """
-    Full training pipeline. Returns the trained model and test metrics.
+    Train the MTL model. Saves best checkpoint and loss curve plots.
 
     Args:
         data_path     : path to ai4i2020.csv
         epochs        : maximum training epochs
         lr            : Adam learning rate
         batch_size    : samples per batch
-        alpha         : weight on binary loss (1-alpha on type loss)
+        alpha         : weight on binary loss (1-alpha goes to type loss)
         dropout       : dropout rate in model
         patience      : early stopping patience (set to epochs to disable)
         seed          : random seed
-        checkpoint_dir: directory to save best model checkpoint
-        results_dir   : directory to save plots
+        checkpoint_dir: where to save best_model.pt
+        results_dir   : where to save loss_curves.png
+
+    Returns:
+        history : dict of per-epoch loss and metric lists
     """
     set_seed(seed)
     device = get_device()
@@ -83,7 +94,7 @@ def train(
 
     # --- Data ---
     train_ds, val_ds, test_ds, _, w_bin, w_type = load_data(data_path, random_state=seed)
-    train_loader, val_loader, test_loader = get_dataloaders(train_ds, val_ds, test_ds, batch_size=batch_size)
+    train_loader, val_loader, _ = get_dataloaders(train_ds, val_ds, test_ds, batch_size=batch_size)
     print(f"Train: {len(train_ds)} | Val: {len(val_ds)} | Test: {len(test_ds)}")
 
     # --- Model ---
@@ -94,8 +105,8 @@ def train(
     loss_fn   = MTLLoss(alpha=alpha, binary_pos_weight=w_bin.to(device), type_class_weights=w_type.to(device))
     optimizer = optim.Adam(model.parameters(), lr=lr)
     scheduler = optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=5, factor=0.5)
-    
-    # --- Training loop ---
+
+    # --- History ---
     history = {
         "train_loss": [], "val_loss": [],
         "train_binary_loss": [], "val_binary_loss": [],
@@ -106,6 +117,7 @@ def train(
 
     best_val_loss = float("inf")
     epochs_without_improvement = 0
+    os.makedirs(checkpoint_dir, exist_ok=True)
     best_checkpoint_path = os.path.join(checkpoint_dir, "best_model.pt")
 
     for epoch in range(1, epochs + 1):
@@ -118,7 +130,7 @@ def train(
         )
         val_metrics = compute_metrics(bin_preds, bin_targets, type_preds, type_targets)
 
-        # Only log the individual losses during eval too (rerun evaluate for sub-losses)
+        # Sub-losses on val
         model.eval()
         val_bl_total, val_tl_total = 0.0, 0.0
         with torch.no_grad():
@@ -163,52 +175,32 @@ def train(
                 print(f"Early stopping at epoch {epoch} (no improvement for {patience} epochs)")
                 break
 
-    # --- Final evaluation on test set ---
-    print("\n" + "=" * 60)
-    print("Test Set Evaluation (best checkpoint)")
-    print("=" * 60)
-
-    # Reload best weights
-    checkpoint = torch.load(best_checkpoint_path, map_location=device)
-    model.load_state_dict(checkpoint["model_state_dict"])
-
-    _, bin_preds, bin_targets, type_preds, type_targets = evaluate(
-        model, test_loader, loss_fn, device
-    )
-    test_metrics = compute_metrics(bin_preds, bin_targets, type_preds, type_targets)
-    print_report(bin_preds, bin_targets, type_preds, type_targets)
-
-    # --- Save plots ---
+    # --- Save loss curves ---
     os.makedirs(results_dir, exist_ok=True)
     plot_loss_curves(history, save_path=os.path.join(results_dir, "loss_curves.png"))
-    plot_confusion_matrix(type_preds, type_targets, save_path=os.path.join(results_dir, "confusion_matrix.png"))
+    print(f"\nTraining complete. Best checkpoint: {best_checkpoint_path}")
+    print("Run `python src/test.py` to evaluate on the test set.")
 
-    print("\nTest metrics summary:")
-    for k, v in test_metrics.items():
-        print(f"  {k}: {v:.4f}")
-
-    return model, test_metrics, history
+    return history
 
 
 # ------------------------------------------------------------------
-# CLI entry point
+# CLI
 # ------------------------------------------------------------------
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Train MTL predictive maintenance model")
-    parser.add_argument("--data",        type=str,   default=os.path.join("data", "ai4i2020.csv"))
-    parser.add_argument("--epochs",      type=int,   default=50)
-    parser.add_argument("--lr",          type=float, default=1e-3)
-    parser.add_argument("--batch-size",  type=int,   default=64)
-    parser.add_argument("--alpha",       type=float, default=0.5,
-                        help="Weight on binary loss (1-alpha on type loss)")
-    parser.add_argument("--dropout",     type=float, default=0.3)
-    parser.add_argument("--patience",    type=int,   default=10)
-    parser.add_argument("--seed",        type=int,   default=42)
-    parser.add_argument("--checkpoint-dir", type=str, default="checkpoints")
-    parser.add_argument("--results-dir",    type=str, default="results")
-    parser.add_argument("--no-early-stopping", action="store_true",
-                        help="Disable early stopping (run all epochs)")
+    parser.add_argument("--data",           type=str,   default=os.path.join("data", "ai4i2020.csv"))
+    parser.add_argument("--epochs",         type=int,   default=50)
+    parser.add_argument("--lr",             type=float, default=1e-3)
+    parser.add_argument("--batch-size",     type=int,   default=64)
+    parser.add_argument("--alpha",          type=float, default=0.5)
+    parser.add_argument("--dropout",        type=float, default=0.3)
+    parser.add_argument("--patience",       type=int,   default=10)
+    parser.add_argument("--seed",           type=int,   default=42)
+    parser.add_argument("--checkpoint-dir", type=str,   default="checkpoints")
+    parser.add_argument("--results-dir",    type=str,   default="results")
+    parser.add_argument("--no-early-stopping", action="store_true")
     return parser.parse_args()
 
 
