@@ -1,12 +1,13 @@
 # Predictive Maintenance with Multi-Task Learning
 CS273P Final Project — Ethan Wong
 
-A PyTorch implementation of a Multi-Task Learning (MTL) architecture for predictive maintenance, trained on the AI4I 2020 dataset. The model shares a residual MLP backbone across two tasks:
+The project uses the AI4I 2020 dataset (10,000 samples of industrial sensor readings) to predict machine failures using a deep learning model built in PyTorch. Instead of a basic sklearn classifier, we built a Multi-Task Learning (MTL) architecture that solves two problems simultaneously:
 
 - **Binary classification:** Did the machine fail?
 - **6-class classification:** Which failure mode occurred? (TWF, HDF, PWF, OSF, RNF, or No Failure)
 
-We trained both tasks jointly.
+The idea is that training both tasks together forces the shared layers to learn better representations than either task would alone.
+
 ---
 
 ## Project Structure
