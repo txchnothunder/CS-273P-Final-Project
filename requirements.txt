@@ -1,7 +1,18 @@
-torch
-scikit-learn
-pandas
-numpy
-matplotlib
-seaborn
-jupyter
+# Python 3.10+ required
+# Install with: pip install -r requirements.txt
+
+torch>=2.3.0
+torchvision>=0.18.0
+
+numpy>=1.26.0
+pandas>=2.2.0
+
+scikit-learn>=1.4.0
+
+matplotlib>=3.8.0
+seaborn>=0.13.0
+
+jupyter>=1.0.0
+ipykernel>=6.29.0
+
+tqdm>=4.66.0
