@@ -146,13 +146,13 @@ Run all cells top to bottom. The notebook walks through dataset statistics, load
 
 After training on the default configuration (50 epochs, seed 42):
 
-| Metric | Expected |
-|---|---|
-| Binary Recall | ~0.90+ |
-| Binary F1 | ~0.35–0.45 |
-| Binary ROC-AUC | ~0.90+ |
-| Type F1 (macro) | ~0.35–0.45 |
-| Type F1 (weighted) | ~0.88+ |
+| Metric              | Expected  |
+|---------------------|-----------|
+| Binary Recall       | ~0.92     |
+| Binary F1           | ~0.37     |
+| Binary ROC-AUC      | ~0.91     |
+| Type F1 (macro)     | ~0.36     |
+| Type F1 (weighted)  | ~0.90     |
 
 Binary precision will appear low (~0.23) due to the severe class imbalance — only 3.4% of samples are failures. The model is intentionally tuned toward high recall, since missing a real failure is a worse outcome than triggering an unnecessary inspection. RNF has only 19 samples in the full dataset and will typically score near 0 F1 regardless of model quality.
 
