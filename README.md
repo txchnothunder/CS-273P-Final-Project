@@ -16,7 +16,7 @@ The idea is that training both tasks together forces the shared layers to learn 
 CS-273P-Final-Project/
 ├── data/
 │   └── ai4i2020.csv          # Dataset (download instructions below)
-├── notebooks/
+├── notebook/
 │   └── demo.ipynb            # End-to-end demo notebook
 ├── src/
 │   ├── dataset.py            # Dataset, DataLoader, preprocessing
@@ -135,7 +135,7 @@ Outputs:
 Open the notebook after training has completed:
 
 ```bash
-jupyter notebook notebooks/demo.ipynb
+jupyter notebook notebook/demo.ipynb
 ```
 
 Run all cells top to bottom. The notebook walks through dataset statistics, loads the saved checkpoint, evaluates on the test set, displays the loss curves and confusion matrix, and runs live inference on custom sensor readings. The last few cells contain a `predict_single()` function — edit the input values to test any machine configuration.
